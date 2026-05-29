@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Focus Beast Scheduler</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body{
+  margin:0;
+  background:#000;
+  color:white;
+  font-family:Arial,sans-serif;
+}
+
+.pulse{
+  animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+  0%{box-shadow:0 0 10px red;}
+  50%{box-shadow:0 0 50px red;}
+  100%{box-shadow:0 0 10px red;}
+}
+</style>
+</head>
+
+<body class="p-5">
+
+<div class="max-w-4xl mx-auto">
+
+<h1 class="text-5xl font-black text-center text-red-600 mb-3">
+FOCUS BEAST
+</h1>
+
+<p class="text-center text-gray-400 text-xl mb-8">
+Discipline • Focus • Grind 🔥
+</p>
+
+<div class="bg-gray-900 border border-red-700 rounded-3xl p-6">
+
+<input
+id="taskName"
+type="text"
+placeholder="Task Name"
+class="w-full p-4 mb-4 rounded-xl bg-black border border-red-600 text-white"
+>
+
+<input
+id="taskTime"
+type="time"
+class="w-full p-4 mb-4 rounded-xl bg-black border border-red-600 text-white"
+>
+
+<input
+id="taskDuration"
+type="number"
+placeholder="Duration in Minutes"
+class="w-full p-4 mb-4 rounded-xl bg-black border border-red-600 text-white"
+>
+
+<button
+id="addBtn"
+class="w-full bg-red-700 hover:bg-red-800 p-4 rounded-2xl text-xl font-bold"
+>
+ADD MISSION
+</button>
+
+</div>
+
+<div id="taskList" class="mt-8 space-y-4"></div>
+
+</div>
+
+<div
+id="alarmScreen"
+class="hidden fixed inset-0 bg-black flex flex-col items-center justify-center z-50 pulse"
+>
+
+<h1
+id="alarmTitle"
+class="text-5xl md:text-7xl text-red-600 font-black text-center px-5 mb-10"
+>
+</h1>
+
+<button
+id="stopBtn"
+class="bg-white text-red-700 text-2xl md:text-4xl font-black px-10 py-6 rounded-3xl"
+>
+STOP BUZZER & START TIMER
+</button>
+
+</div>
+
+<div
+id="timerScreen"
+class="hidden fixed inset-0 bg-black flex flex-col items-center justify-center z-40"
+>
+
+<h1
+id="timerTitle"
+class="text-4xl md:text-7xl text-red-500 font-black text-center mb-10 px-5"
+>
+</h1>
+
+<div
+id="timerText"
+class="text-7xl md:text-[200px] font-black"
+>
+00:00
+</div>
+
+<p class="mt-8 text-2xl text-gray-400 text-center px-5">
+Focus Mode Active 🔥
+</p>
+
+</div>
+
+<audio id="alarmAudio" loop>
+<source
+src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
+type="audio/ogg"
+>
+</audio>
+
+<script>
+
+let tasks = [];
+let activeTask = null;
+let timerInterval = null;
+let remainingSeconds = 0;
+
+const quotes = [
+  'Discipline beats excuses 🔥',
+  'Focus warna regret karega 😈',
+  'Har second important hai ⏳',
+  'Kaam kar warna sapne toot jayenge ⚡'
+];
+
+if ('Notification' in window) {
+  Notification.requestPermission();
+}
+
+function addTask(){
+
+  const name = document.getElementById('taskName').value.trim();
+  const time = document.getElementById('taskTime').value;
+  const duration = parseInt(document.getElementById('taskDuration').value);
+
+  if(!name || !time || !duration){
+    alert('Sab fields bharo');
+    return;
+  }
+
+  tasks.push({
+    name:name,
+    time:time,
+    duration:duration,
+    started:false
+  });
+
+  renderTasks();
+
+  document.getElementById('taskName').value='';
+  document.getElementById('taskTime').value='';
+  document.getElementById('taskDuration').value='';
+}
+
+function renderTasks(){
+
+  const list = document.getElementById('taskList');
+
+  list.innerHTML='';
+
+  tasks.forEach((task)=>{
+
+    const div=document.createElement('div');
+
+    div.className='bg-gray-900 border border-red-700 rounded-2xl p-5';
+
+    div.innerHTML=`
+      <h2 class="text-2xl font-bold text-red-500">
+        ${task.name}
+      </h2>
+
+      <p class="text-gray-300 mt-2">
+        Time: ${task.time}
+      </p>
+
+      <p class="text-gray-400">
+        Duration: ${task.duration} Minutes
+      </p>
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+document.getElementById('addBtn').addEventListener('click',addTask);
+
+document.getElementById('stopBtn').addEventListener('click',stopAlarmAndStartTimer);
+
+setInterval(()=>{
+
+  const now=new Date();
+  const current=now.toTimeString().slice(0,5);
+
+  tasks.forEach(task=>{
+
+    if(task.time===current && !task.started){
+
+      task.started=true;
+
+      startAlarm(task);
+    }
+  });
+
+},1000);
+
+function startAlarm(task){
+
+  activeTask=task;
+
+  document.getElementById('alarmScreen').classList.remove('hidden');
+
+  document.getElementById('alarmTitle').innerText=task.name;
+
+  const audio=document.getElementById('alarmAudio');
+
+  audio.volume=1;
+
+  audio.play().catch(()=>{});
+
+  const quote=quotes[Math.floor(Math.random()*quotes.length)];
+
+  if(Notification.permission==='granted'){
+
+    new Notification('⚠️ TIME TO WORK!',{
+      body:task.name+' — '+quote
+    });
+  }
+}
+
+async function stopAlarmAndStartTimer(){
+
+  const audio=document.getElementById('alarmAudio');
+
+  audio.pause();
+  audio.currentTime=0;
+
+  document.getElementById('alarmScreen').classList.add('hidden');
+
+  document.getElementById('timerScreen').classList.remove('hidden');
+
+  document.getElementById('timerTitle').innerText=activeTask.name;
+
+  try{
+    if(document.documentElement.requestFullscreen){
+      await document.documentElement.requestFullscreen();
+    }
+  }catch(e){}
+
+  remainingSeconds=activeTask.duration*60;
+
+  updateTimer();
+
+  clearInterval(timerInterval);
+
+  timerInterval=setInterval(()=>{
+
+    remainingSeconds--;
+
+    updateTimer();
+
+    if(remainingSeconds<=0){
+
+      clearInterval(timerInterval);
+
+      document.getElementById('timerText').innerText='DONE ✅';
+
+      if(Notification.permission==='granted'){
+
+        new Notification('✅ TASK COMPLETE',{
+          body:activeTask.name+' complete ho gaya 🔥'
+        });
+      }
+
+      activeTask=null;
+    }
+
+  },1000);
+}
+
+function updateTimer(){
+
+  const min=Math.floor(remainingSeconds/60);
+  const sec=remainingSeconds%60;
+
+  document.getElementById('timerText').innerText =
+  String(min).padStart(2,'0')+':' + String(sec).padStart(2,'0');
+}
+
+document.addEventListener('visibilitychange',()=>{
+
+  if(document.hidden && activeTask!==null){
+
+    const audio=document.getElementById('alarmAudio');
+
+    audio.volume=1;
+
+    audio.play().catch(()=>{});
+
+    if(Notification.permission==='granted'){
+
+      new Notification('⚠️ WAPAS AAO!',{
+        body:'Timer chal raha hai 🔥'
+      });
+    }
+  }
+
+  else{
+
+    const audio=document.getElementById('alarmAudio');
+
+    audio.pause();
+    audio.currentTime=0;
+  }
+
+});
+
+</script>
+
+</body>
+</html>
